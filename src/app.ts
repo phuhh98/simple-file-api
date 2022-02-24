@@ -1,9 +1,11 @@
 import express from "express";
 import morgan from "morgan";
+
 import path from "path";
 import fs from "fs";
 
-import appRouter from "./router/appRouter";
+import appRouter from "./routers/appRouter";
+import { ClientError } from "./types/messages";
 
 const app = express();
 
@@ -22,9 +24,10 @@ app.use("/", appRouter);
 
 // Return error on any wrong path request
 app.all("*", (req, res) => {
-  res.status(400).json({
+  const message: ClientError = {
     message: "Client error",
-  });
+  };
+  res.status(400).json(message);
 });
 
 export default app;
