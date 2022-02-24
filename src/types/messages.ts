@@ -10,3 +10,12 @@ export interface ClientError {
 export interface ServerError {
   message: string | "Server error";
 }
+
+export interface RetrieveFileDataSuccess {
+  message: "Success";
+  filename: string;
+  content: string;
+  /* Supported file types */
+  extension: "log" | "txt" | "json" | "yaml" | "xml" | "js";
+  uploadedDate: string;
+}
