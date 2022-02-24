@@ -18,7 +18,7 @@
   },
   "homepage": "https://gitlab.com/Phu_Huynh/nodejs-hw1#readme",
   "dependencies": {
-    "chalk": "^5.0.0",
+    "chalk": "^4.1.0",
     "express": "^4.17.3"
   },
   "devDependencies": {
