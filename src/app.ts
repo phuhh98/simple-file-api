@@ -1,15 +1,30 @@
 import express from "express";
-import chalk from "chalk";
+import morgan from "morgan";
+import path from "path";
+import fs from "fs";
+
+import appRouter from "./router/appRouter";
 
 const app = express();
-const PORT = 8080;
 
-app.get("/", (req, res) => {
-  res.status(200).json({ status: "okay" }).end();
+// Parse json body
+app.use(express.json());
+
+// Create a write stream (in append mode)
+var accessLogStream = fs.createWriteStream(path.join(__dirname, ".log"), {
+  flags: "a",
+});
+// Setup the logger with morgan; Apache style
+app.use(morgan("combined", { stream: accessLogStream }));
+
+// Routing
+app.use("/", appRouter);
+
+// Return error on any wrong path request
+app.all("*", (req, res) => {
+  res.status(400).json({
+    message: "Client error",
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(
-    `\nExpress server has started at port ${chalk.bold.italic.yellow(PORT)}`
-  );
-});
+export default app;
