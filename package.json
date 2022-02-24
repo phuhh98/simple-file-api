@@ -2,10 +2,10 @@
   "name": "nodejs-hw1",
   "version": "1.0.0",
   "description": "",
-  "main": "src/app.ts",
+  "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon --config nodemon.json src/app.ts",
+    "start": "nodemon --config nodemon.json src/index.ts",
     "build": "tsc --project ./"
   },
   "repository": {
@@ -20,10 +20,12 @@
   "homepage": "https://gitlab.com/Phu_Huynh/nodejs-hw1#readme",
   "dependencies": {
     "chalk": "^4.1.0",
-    "express": "^4.17.3"
+    "express": "^4.17.3",
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
+    "@types/morgan": "^1.9.3",
     "@types/node": "^17.0.21",
     "nodemon": "^2.0.15",
     "ts-node": "^10.5.0",
