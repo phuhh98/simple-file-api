@@ -3,9 +3,10 @@ export interface RetrieveFilesSuccess {
   files: string[];
 }
 
-export interface Error {
+export interface Message {
   message: string;
 }
+export type Error = Message;
 
 export interface CreateFileSuccess {
   message: string;

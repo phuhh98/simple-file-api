@@ -1,12 +1,13 @@
 /* Current path: /api/files */
 import express from "express";
 
-import fs, { promises as fsPromise } from "fs";
+import fs, { promises as fsPromises } from "fs";
 import {
   Error,
   CreateFileSuccess,
   RetrieveFilesSuccess,
   RetrievedFileData,
+  Message,
 } from "../../types/messages";
 
 const filesRouter = express.Router();
@@ -15,9 +16,10 @@ const DATA_FOLDER = "./data";
 
 filesRouter.use(checkDataFolderExistence);
 
+/* Return list of files in DATA_FOLDER from endpoint GET /api/files */
 filesRouter.get("/", async (req, res) => {
   try {
-    const files = await fsPromise.readdir(DATA_FOLDER);
+    const files = await fsPromises.readdir(DATA_FOLDER);
     const message: RetrieveFilesSuccess = {
       message: "Success",
       files: files ? files : [],
@@ -32,6 +34,7 @@ filesRouter.get("/", async (req, res) => {
   }
 });
 
+/* Create a file from endpoint GET /api/files , with request body of JSON: { filename: string, content: string } */
 filesRouter.post("/", async (req, res) => {
   try {
     const { filename, content } = req.body;
@@ -57,7 +60,7 @@ filesRouter.post("/", async (req, res) => {
       return;
     }
 
-    await fsPromise.writeFile(`${DATA_FOLDER}/${filename}`, content);
+    await fsPromises.writeFile(`${DATA_FOLDER}/${filename}`, content);
 
     const message: CreateFileSuccess = {
       message: "File created successfully",
@@ -71,22 +74,83 @@ filesRouter.post("/", async (req, res) => {
   }
 });
 
+/* Return file content from endpoint GET /api/files/:filename */
 filesRouter.get("/:filename", async (req, res) => {
   try {
     const filename = req.params.filename;
     const tempSplit = filename.split(".");
     const extension = tempSplit[tempSplit.length - 1];
 
-    const files = await fsPromise.readdir(DATA_FOLDER);
+    const files = await fsPromises.readdir(DATA_FOLDER);
     if (files.indexOf(filename) !== -1) {
-      const content = await fsPromise.readFile(`${DATA_FOLDER}/${filename}`);
-      const fileStat = await fsPromise.stat(`${DATA_FOLDER}/${filename}`);
+      const content = await fsPromises.readFile(`${DATA_FOLDER}/${filename}`);
+      const fileStat = await fsPromises.stat(`${DATA_FOLDER}/${filename}`);
       const message: RetrievedFileData = {
         message: "Success",
         filename,
         content: content.toString(),
         extension,
-        uploadedDate: new Date(fileStat.mtime).toISOString(),
+        uploadedDate: new Date(fileStat.birthtime).toISOString(),
+      };
+
+      res.status(200).json(message);
+    } else {
+      const message: Error = {
+        message: `No file with '${filename}' filename found`,
+      };
+      res.status(400).json(message);
+    }
+  } catch (err) {
+    const message: Error = {
+      message: "Server error",
+    };
+    res.status(500).json(message);
+  }
+});
+
+/* Update file content from endpoint PATCH /api/files/:filename */
+filesRouter.patch("/:filename", async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const { content } = req.body;
+    if (!content) {
+      const message: Error = {
+        message: "Please specify 'content' parameter",
+      };
+      res.status(400).json(message);
+      return;
+    }
+    const files = await fsPromises.readdir(DATA_FOLDER);
+    if (files.indexOf(filename) !== -1) {
+      await fsPromises.writeFile(`${DATA_FOLDER}/${filename}`, content);
+      const message: CreateFileSuccess = {
+        message: `File '${filename}' has been updated successfully`,
+      };
+      res.status(200).json(message);
+    } else {
+      const message: Error = {
+        message: `No file with '${filename}' filename found`,
+      };
+      res.status(400).json(message);
+    }
+  } catch (err) {
+    const message: Error = {
+      message: "Server error",
+    };
+    res.status(500).json(message);
+  }
+});
+
+/* Delete file from endpoint DELETE /api/files/:filename */
+filesRouter.delete("/:filename", async (req, res) => {
+  try {
+    const filename = req.params.filename;
+
+    const files = await fsPromises.readdir(DATA_FOLDER);
+    if (files.indexOf(filename) !== -1) {
+      await fsPromises.unlink(`${DATA_FOLDER}/${filename}`);
+      const message: Message = {
+        message: `File '${filename}' has been deleted`,
       };
 
       res.status(200).json(message);
