@@ -19,3 +19,8 @@ export interface RetrievedFileData {
   extension: string;
   uploadedDate: string;
 }
+
+export interface FilePasswordItem {
+  filename: string;
+  password: string;
+}

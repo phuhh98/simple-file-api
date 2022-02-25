@@ -19,6 +19,8 @@
   },
   "homepage": "https://gitlab.com/Phu_Huynh/nodejs-hw1#readme",
   "dependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "bcrypt": "^5.0.1",
     "chalk": "^4.1.0",
     "express": "^4.17.3",
     "morgan": "^1.10.0"
