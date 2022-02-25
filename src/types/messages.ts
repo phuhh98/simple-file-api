@@ -3,19 +3,18 @@ export interface RetrieveFilesSuccess {
   files: string[];
 }
 
-export interface ClientError {
-  message: string | "Client error";
+export interface Error {
+  message: string;
 }
 
-export interface ServerError {
-  message: string | "Server error";
+export interface CreateFileSuccess {
+  message: string;
 }
 
-export interface RetrieveFileDataSuccess {
+export interface RetrievedFileData {
   message: "Success";
   filename: string;
   content: string;
-  /* Supported file types */
-  extension: "log" | "txt" | "json" | "yaml" | "xml" | "js";
+  extension: string;
   uploadedDate: string;
 }

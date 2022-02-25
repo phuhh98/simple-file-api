@@ -1,8 +1,8 @@
 import express from "express";
-import apiRouter from "./api/apiRouter";
+import filesRouter from "./api/filesRouter";
 
 const appRouter = express.Router();
 
-appRouter.use("/api", apiRouter);
+appRouter.use("/api/files", filesRouter);
 
 export default appRouter;

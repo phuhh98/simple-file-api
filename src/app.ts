@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 
 import appRouter from "./routers/appRouter";
-import { ClientError } from "./types/messages";
+import { Error } from "./types/messages";
 
 const app = express();
 
@@ -24,7 +24,7 @@ app.use("/", appRouter);
 
 // Return error on any wrong path request
 app.all("*", (req, res) => {
-  const message: ClientError = {
+  const message: Error = {
     message: "Client error",
   };
   res.status(400).json(message);
