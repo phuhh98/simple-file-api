@@ -73,13 +73,7 @@ filesRouter.post("/:password?", async (req, res) => {
       const passwordList: FilePasswordItem[] = JSON.parse(
         passwordJSON.toString()
       );
-      const existed = passwordList.some(async item => {
-        if (item.filename === filename) {
-          const result = await bcrypt.compare(password, item.password);
-          return result;
-        }
-        return false;
-      });
+      const existed = passwordList.some(item => item.filename === filename);
       if (!existed) {
         const hash = await bcrypt.hash(password, SALT_ROUND);
         passwordList.push({
@@ -97,7 +91,6 @@ filesRouter.post("/:password?", async (req, res) => {
     };
     res.status(200).json(message);
   } catch (err) {
-    console.log(err);
     const message: Error = {
       message: "Server error",
     };
@@ -106,7 +99,7 @@ filesRouter.post("/:password?", async (req, res) => {
 });
 
 /* Return file content from endpoint GET /api/files/:filename */
-filesRouter.get("/:filename/", async (req, res) => {
+filesRouter.get("/:filename/:password?", validatePassword, async (req, res) => {
   try {
     const filename = req.params.filename;
     const tempSplit = filename.split(".");
@@ -140,64 +133,75 @@ filesRouter.get("/:filename/", async (req, res) => {
 });
 
 /* Update file content from endpoint PATCH /api/files/:filename */
-filesRouter.patch("/:filename", async (req, res) => {
-  try {
-    const filename = req.params.filename;
-    const { content } = req.body;
-    if (!content) {
+filesRouter.patch(
+  "/:filename/:password?",
+  validatePassword,
+  async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const { content } = req.body;
+      if (!content) {
+        const message: Error = {
+          message: "Please specify 'content' parameter",
+        };
+        res.status(400).json(message);
+        return;
+      }
+      const files = await fsPromises.readdir(DATA_FOLDER);
+      if (files.indexOf(filename) !== -1) {
+        await fsPromises.writeFile(`${DATA_FOLDER}/${filename}`, content);
+        const message: CreateFileSuccess = {
+          message: `File '${filename}' has been updated successfully`,
+        };
+        res.status(200).json(message);
+      } else {
+        const message: Error = {
+          message: `No file with '${filename}' filename found`,
+        };
+        res.status(400).json(message);
+      }
+    } catch (err) {
       const message: Error = {
-        message: "Please specify 'content' parameter",
+        message: "Server error",
       };
-      res.status(400).json(message);
-      return;
+      res.status(500).json(message);
     }
-    const files = await fsPromises.readdir(DATA_FOLDER);
-    if (files.indexOf(filename) !== -1) {
-      await fsPromises.writeFile(`${DATA_FOLDER}/${filename}`, content);
-      const message: CreateFileSuccess = {
-        message: `File '${filename}' has been updated successfully`,
-      };
-      res.status(200).json(message);
-    } else {
-      const message: Error = {
-        message: `No file with '${filename}' filename found`,
-      };
-      res.status(400).json(message);
-    }
-  } catch (err) {
-    const message: Error = {
-      message: "Server error",
-    };
-    res.status(500).json(message);
   }
-});
+);
 
 /* Delete file from endpoint DELETE /api/files/:filename */
-filesRouter.delete("/:filename", async (req, res) => {
-  try {
-    const filename = req.params.filename;
+filesRouter.delete(
+  "/:filename/:password?",
+  validatePassword,
+  async (req, res) => {
+    try {
+      const filename = req.params.filename;
 
-    const files = await fsPromises.readdir(DATA_FOLDER);
-    if (files.indexOf(filename) !== -1) {
-      await fsPromises.unlink(`${DATA_FOLDER}/${filename}`);
-      const message: Message = {
-        message: `File '${filename}' has been deleted`,
-      };
+      const files = await fsPromises.readdir(DATA_FOLDER);
+      if (files.indexOf(filename) !== -1) {
+        await fsPromises.unlink(`${DATA_FOLDER}/${filename}`);
+        const message: Message = {
+          message: `File '${filename}' has been deleted`,
+        };
 
-      res.status(200).json(message);
-    } else {
+        // Clean up password
+        cleanPasswordForFile(filename);
+
+        res.status(200).json(message);
+      } else {
+        const message: Error = {
+          message: `No file with '${filename}' filename found`,
+        };
+        res.status(400).json(message);
+      }
+    } catch (err) {
       const message: Error = {
-        message: `No file with '${filename}' filename found`,
+        message: "Server error",
       };
-      res.status(400).json(message);
+      res.status(500).json(message);
     }
-  } catch (err) {
-    const message: Error = {
-      message: "Server error",
-    };
-    res.status(500).json(message);
   }
-});
+);
 
 function checkDataFolderExistence(
   req: express.Request,
@@ -213,6 +217,46 @@ function checkDataFolderExistence(
     fs.writeFileSync(PASSWORD_FILE, JSON.stringify([]));
   }
   next();
+}
+
+async function validatePassword(
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) {
+  const { filename, password } = req.params;
+
+  const passwordJSON = await fsPromises.readFile(PASSWORD_FILE);
+  const passwordList: FilePasswordItem[] = JSON.parse(passwordJSON.toString());
+  const item = passwordList.find(item => item.filename === filename);
+
+  if (!item) {
+    next();
+  } else if (!!item && !password) {
+    const message: Error = {
+      message:
+        "This file is protected by a password. Please specify a password in path after filename as: /api/:filename/:password",
+    };
+    res.status(400).json(message);
+  } else {
+    const result = await bcrypt.compare(password, item.password);
+    if (result) {
+      next();
+    } else {
+      const message: Error = {
+        message: "Wrong password in path: /api/:filename/:password",
+      };
+      res.status(400).json(message);
+    }
+  }
+}
+
+async function cleanPasswordForFile(filename: string) {
+  const passwordJSON = await fsPromises.readFile(PASSWORD_FILE);
+  const passwordList: FilePasswordItem[] = JSON.parse(passwordJSON.toString());
+  const index = passwordList.findIndex(item => item.filename === filename);
+  passwordList.splice(index, 1);
+  await fsPromises.writeFile(PASSWORD_FILE, JSON.stringify(passwordList));
 }
 
 export default filesRouter;
