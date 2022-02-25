@@ -73,14 +73,13 @@ filesRouter.post("/:password?", async (req, res) => {
       const passwordList: FilePasswordItem[] = JSON.parse(
         passwordJSON.toString()
       );
-      const existed = passwordList.find(async item => {
-        let result = false;
+      const existed = passwordList.some(async item => {
         if (item.filename === filename) {
-          result = await bcrypt.compare(password, item.password);
+          const result = await bcrypt.compare(password, item.password);
+          return result;
         }
-        return result;
+        return false;
       });
-
       if (!existed) {
         const hash = await bcrypt.hash(password, SALT_ROUND);
         passwordList.push({
@@ -92,7 +91,9 @@ filesRouter.post("/:password?", async (req, res) => {
     }
 
     const message: CreateFileSuccess = {
-      message: `File created successfully${!!password && ` with a password`}`,
+      message: `File created successfully${
+        !!password ? " with a password" : ""
+      }`,
     };
     res.status(200).json(message);
   } catch (err) {
@@ -105,7 +106,7 @@ filesRouter.post("/:password?", async (req, res) => {
 });
 
 /* Return file content from endpoint GET /api/files/:filename */
-filesRouter.get("/:filename", async (req, res) => {
+filesRouter.get("/:filename/", async (req, res) => {
   try {
     const filename = req.params.filename;
     const tempSplit = filename.split(".");
