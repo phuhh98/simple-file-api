@@ -237,7 +237,7 @@ async function validatePassword(
       message:
         "This file is protected by a password. Please specify a password in path after filename as: /api/:filename/:password",
     };
-    res.status(400).json(message);
+    res.status(401).json(message);
   } else {
     const result = await bcrypt.compare(password, item.password);
     if (result) {
@@ -246,7 +246,7 @@ async function validatePassword(
       const message: Error = {
         message: "Wrong password in path: /api/:filename/:password",
       };
-      res.status(400).json(message);
+      res.status(401).json(message);
     }
   }
 }
